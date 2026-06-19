@@ -1,0 +1,9 @@
+{
+  "course": "intro-to-apis",
+  "owner": "study-group-7",
+  "links": [
+    "https://example.org/notes/week-1",
+    "https://example.org/notes/week-2"
+  ],
+  "tags": ["beginner", "rest", "json"]
+}

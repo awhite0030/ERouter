@@ -1,0 +1,32 @@
+server:
+  host: 127.0.0.1
+  port: 8080
+
+routes:
+  - id: github-user
+    match:
+      path: /github/users/:login
+    upstream:
+      url: https://api.github.com/users/{login}
+      headers:
+        Accept: application/vnd.github+json
+
+  - id: book-search
+    match:
+      path: /books/:q
+    aggregator:
+      strategy: json-merge
+      sources:
+        - id: openlibrary
+          url: https://openlibrary.org/search.json?q={q}
+        - id: googlebooks
+          url: https://www.googleapis.com/books/v1/volumes?q={q}
+      merge:
+        as: results
+        pick:
+          openlibrary: docs
+          googlebooks: items
+
+resources:
+  pool:
+    dir: ./data/pool

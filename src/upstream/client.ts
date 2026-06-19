@@ -50,12 +50,18 @@ export class UpstreamClient {
         headers: req.headers,
         dispatcher: agent,
         body: req.body,
-        headersTimeout: timeoutMs,
-        bodyTimeout: timeoutMs,
-      };
+      } as RequestInit;
       try {
         const res = await fetch(req.url, init);
-        const body = await res.body.text();
+        if (res.body === null) {
+          return { status: res.status, headers: {}, body: "" };
+        }
+        const decoder = new TextDecoder("utf-8");
+        let body = "";
+        for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
+          body += decoder.decode(chunk, { stream: true });
+        }
+        body += decoder.decode();
         const headers: Record<string, string> = {};
         for (const [k, v] of Object.entries(res.headers)) {
           if (typeof v === "string") headers[k] = v;

@@ -1,0 +1,13 @@
+services:
+  erouter:
+    build: .
+    image: erouter:latest
+    container_name: erouter
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./erouter.yaml:/app/erouter.yaml:ro
+      - ./data/pool:/app/data/pool:ro
+    environment:
+      - EROUTER_CONFIG=/app/erouter.yaml

@@ -1,0 +1,9 @@
+{
+  "course": "indie-dev-tooling",
+  "owner": "indie-team-spb",
+  "links": [
+    "https://example.org/notes/cli-design",
+    "https://example.org/notes/release-flow"
+  ],
+  "tags": ["intermediate", "cli", "devx"]
+}

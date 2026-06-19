@@ -1,0 +1,10 @@
+{
+  "course": "intro-to-apis",
+  "owner": "study-group-7",
+  "schedule": [
+    {"week": 1, "topic": "HTTP basics", "url": "https://example.org/notes/w1"},
+    {"week": 2, "topic": "JSON & REST", "url": "https://example.org/notes/w2"},
+    {"week": 3, "topic": "Auth & API keys", "url": "https://example.org/notes/w3"}
+  ],
+  "tags": ["beginner", "rest", "json"]
+}

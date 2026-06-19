@@ -1,0 +1,12 @@
+{
+  "group": "local-community-net",
+  "city": "Saint Petersburg",
+  "channels": {
+    "telegram": "@spb_devs",
+    "meetup": "https://example.org/meetup"
+  },
+  "resources": {
+    "books": "/books/:q",
+    "weather": "/weather/:city"
+  }
+}

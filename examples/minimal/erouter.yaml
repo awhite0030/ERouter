@@ -1,0 +1,16 @@
+server:
+  host: 127.0.0.1
+  port: 8081
+
+routes:
+  - id: hello
+    match:
+      path: /hello/:name
+    upstream:
+      url: https://api.github.com/users/{name}
+    transform:
+      pick: [login, id, name, bio]
+
+resources:
+  pool:
+    dir: ./data/pool

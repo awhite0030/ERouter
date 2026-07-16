@@ -10,7 +10,6 @@ export const APP_CONFIG = {
 // GitHub configuration
 export const GITHUB_CONFIG = {
   changelogUrl: "https://raw.githubusercontent.com/awhite0030/ERouter/refs/heads/master/CHANGELOG.md",
-  donateUrl: "https://github.com/awhite0030/ERouter/api/donate",
 };
 
 // Updater configuration

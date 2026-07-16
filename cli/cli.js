@@ -506,18 +506,57 @@ function openBrowser(url) {
   });
 }
 
-// Find standalone server (bundled in bin/app for published package).
-// Prefer custom-server.js (injects real socket IP) when present.
-const standaloneDir = path.join(__dirname, "app");
-const customServerPath = path.join(standaloneDir, "custom-server.js");
-const serverPath = fs.existsSync(customServerPath)
-  ? customServerPath
-  : path.join(standaloneDir, "server.js");
+// Resolve how to start the app:
+// 1) Bundled standalone under cli/app (published package / after `npm run build`)
+// 2) Local monorepo next to this package (npm install -g . from cli/) → next dev
+function resolveRuntime() {
+  const bundledDir = path.join(__dirname, "app");
+  const customServerPath = path.join(bundledDir, "custom-server.js");
+  const serverJsPath = path.join(bundledDir, "server.js");
+  if (fs.existsSync(customServerPath)) {
+    return { mode: "standalone", serverPath: customServerPath, cwd: bundledDir };
+  }
+  if (fs.existsSync(serverJsPath)) {
+    return { mode: "standalone", serverPath: serverJsPath, cwd: bundledDir };
+  }
 
-if (!fs.existsSync(serverPath)) {
-  console.error("Error: Standalone build not found.");
-  console.error("Please run 'npm run build:cli' first.");
+  const monorepo = path.resolve(__dirname, "..");
+  const monoPkgPath = path.join(monorepo, "package.json");
+  if (fs.existsSync(monoPkgPath)) {
+    try {
+      const monoPkg = JSON.parse(fs.readFileSync(monoPkgPath, "utf8"));
+      if (monoPkg.name === "erouter-app" || monoPkg.name === "9router-app") {
+        const nextPkg = path.join(monorepo, "node_modules", "next");
+        if (fs.existsSync(nextPkg)) {
+          return { mode: "next-dev", cwd: monorepo };
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+const runtime = resolveRuntime();
+if (!runtime) {
+  console.error("Error: ERouter server build not found.");
+  console.error("");
+  console.error("From the monorepo:");
+  console.error("  cd D:\\тест\\erouter\\cli");
+  console.error("  npm run build          # builds Next.js standalone into cli/app");
+  console.error("  npm install -g .");
+  console.error("");
+  console.error("Or for quick local dev (no standalone pack):");
+  console.error("  cd D:\\тест\\erouter");
+  console.error("  npm install");
+  console.error("  npm run dev            # http://localhost:20127");
   process.exit(1);
+}
+
+if (runtime.mode === "next-dev") {
+  console.log("\x1b[36mℹ Running from monorepo (next dev) — production standalone not built yet.\x1b[0m");
+  console.log("\x1b[36m  For full CLI pack later: cd cli && npm run build\x1b[0m");
 }
 
 // Start server immediately; run update check in parallel (not on the critical path).
@@ -594,17 +633,40 @@ function startServer(updatePromise) {
   function spawnServer() {
     serverStartTime = Date.now();
     crashLog = [];
-    const child = spawn(RUNTIME, ["--max-old-space-size=6144", serverPath], {
-      cwd: standaloneDir,
-      stdio: showLog ? "inherit" : ["ignore", "ignore", "pipe"],
-      detached: true,
-      windowsHide: true,
-      env: {
-        ...buildEnvWithRuntime(process.env),
-        PORT: port.toString(),
-        HOSTNAME: host
+    const env = {
+      ...buildEnvWithRuntime(process.env),
+      PORT: port.toString(),
+      HOSTNAME: host,
+    };
+
+    let child;
+    if (runtime.mode === "next-dev") {
+      // Local monorepo: run Next.js dev server (same UX as npm run dev).
+      const nextCli = path.join(runtime.cwd, "node_modules", "next", "dist", "bin", "next");
+      const nextArgs = fs.existsSync(nextCli)
+        ? [nextCli, "dev", "--port", port.toString(), "--hostname", host === "0.0.0.0" ? "0.0.0.0" : host]
+        : [];
+      if (nextArgs.length === 0) {
+        console.error("next package found but next binary missing. Run: npm install (in monorepo root)");
+        process.exit(1);
       }
-    });
+      child = spawn(RUNTIME, nextArgs, {
+        cwd: runtime.cwd,
+        stdio: showLog ? "inherit" : ["ignore", "ignore", "pipe"],
+        detached: true,
+        windowsHide: true,
+        env,
+      });
+    } else {
+      child = spawn(RUNTIME, ["--max-old-space-size=6144", runtime.serverPath], {
+        cwd: runtime.cwd,
+        stdio: showLog ? "inherit" : ["ignore", "ignore", "pipe"],
+        detached: true,
+        windowsHide: true,
+        env,
+      });
+    }
+
     if (!showLog && child.stderr) {
       child.stderr.on("data", (data) => {
         const lines = data.toString().split("\n").filter(Boolean);

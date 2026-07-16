@@ -1,6 +1,11 @@
 MIT License
 
-Copyright (c) 2026 ERouter contributors
+Copyright (c) 2026 A. White / ERouter contributors
+
+This project is a rebranded derivative of 9router
+(https://github.com/decolua/9router), originally licensed under the MIT License:
+
+  Copyright (c) 2024-2026 decolua and contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

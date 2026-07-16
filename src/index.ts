@@ -26,3 +26,14 @@ export type { MetricsSnapshot } from "./gateway/metrics.js";
 export { applyTransform } from "./gateway/transform.js";
 export type { TransformConfig } from "./gateway/transform.js";
 export { runCli } from "./cli.js";
+export { ecompressMessages, compressToolText } from "./llm/ecompress.js";
+export { handleChatCompletions, handleListModels } from "./llm/proxy.js";
+export { resolveModelChain, listVirtualModels } from "./llm/resolve.js";
+export { UsageTracker } from "./llm/usage.js";
+export type {
+  LlmConfig,
+  LlmProviderConfig,
+  LlmComboConfig,
+  ChatCompletionRequest,
+  UsageSnapshot,
+} from "./llm/types.js";

@@ -6,17 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-07-16
+
 ### Added
-- `auth` block in `erouter.yaml` with API-key authentication and optional scopes.
-- `rateLimit` block with per-key in-memory token bucket.
-- `cache` block with TTL and LRU-ish eviction; per-route `cache.ttlMs` override.
-- Response transforms on routes: `pick`, `drop`, `rename`, `wrapAs`.
-- `/metrics` endpoint exposing request counts, per-route p95, per-source
-  success rate, and cache stats.
-- `/admin/routes` endpoint listing configured routes.
-- CLI with `init`, `validate`, `serve` subcommands.
-- More examples: `examples/minimal`, `examples/with-auth`, `examples/gateway`.
-- Extra unit tests for auth, rate-limit, transform, cache, metrics.
+- **LLM router** (OpenAI-compatible): `GET /v1/models`, `POST /v1/chat/completions`.
+- YAML `llm` block: providers, combos, ECompress, lean mode, ensemble, usage.
+- **ECompress** — fail-open tool_result compression (git-diff / grep / tree / truncate).
+- **Tiered fallback** chains: subscription → cheap → free via combos.
+- **Ensemble** mode (`ensemble:<combo>`): first-ok | concat | vote-longest.
+- Transparent response headers: `X-ERouter-Provider`, `X-ERouter-Model`,
+  `X-ERouter-Tier`, `X-ERouter-Tokens-Saved`, `X-ERouter-Cost-Estimate-Usd`, …
+- `/metrics` includes `llm` usage snapshot when enabled.
+- Example: `examples/llm/erouter.yaml` for Cursor / Cline / Codex / Ollama / OpenRouter.
+- Unit tests: `ecompress`, `llm-resolve`.
+
+### Notes
+- Concepts inspired by [9router](https://github.com/decolua/9router) (multi-provider
+  routing, token saving, fallback), redesigned as **YAML-first single process** —
+  no dashboard/SQLite required; classic REST gateway + resource pool stay first-class.
 
 ## [0.1.0] — 2026-06-20
 

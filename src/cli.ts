@@ -5,7 +5,7 @@ import { loadConfig, parseConfig } from "./config/loader.js";
 import { buildGateway } from "./gateway/server.js";
 import { parse as parseYaml } from "yaml";
 
-const USAGE = `erouter — API gateway and resource aggregator
+const USAGE = `erouter — API gateway, resource aggregator & LLM router
 
 Usage:
   erouter init [path]            write a starter erouter.yaml
@@ -13,9 +13,14 @@ Usage:
   erouter serve [--config <p>]   run the gateway (default: erouter.yaml)
   erouter --help                 show this help
   erouter --version              print version
+
+LLM (when llm.enabled in yaml):
+  GET  /v1/models
+  POST /v1/chat/completions
+  Point Cursor/Cline/Codex at http://HOST:PORT/v1
 `;
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 function printUsage(): void {
   process.stdout.write(USAGE);

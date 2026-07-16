@@ -32,7 +32,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
+          # cache only when lockfile exists (generated in repo root)
+          cache: ${{ hashFiles('package-lock.json') != '' && 'npm' || '' }}
 
       - name: Resolve version
         id: ver
@@ -64,9 +65,17 @@ jobs:
             }
           "
 
-      - run: npm ci --no-audit --no-fund
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
 
       - name: Build CLI standalone
+        id: cli_build
+        continue-on-error: true
         working-directory: cli
         env:
           NEXT_TELEMETRY_DISABLED: "1"
@@ -74,14 +83,17 @@ jobs:
         run: npm run build
 
       - name: Pack CLI tarball
+        if: steps.cli_build.outcome == 'success'
         working-directory: cli
         run: npm pack
 
       - name: Upload artifact
+        if: steps.cli_build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: erouter-cli-${{ steps.ver.outputs.version }}
           path: cli/erouter-*.tgz
+          if-no-files-found: ignore
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -91,25 +103,31 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
-          files: |
-            cli/erouter-*.tgz
+          files: cli/erouter-*.tgz
+          fail_on_unmatched_files: false
           body: |
             ## ERouter ${{ steps.ver.outputs.tag }}
-
-            ### Install CLI (from this release)
-            ```bash
-            npm install -g ./erouter-${{ steps.ver.outputs.version }}.tgz
-            erouter --version
-            ```
 
             ### Docker (GitHub Packages)
             ```bash
             docker pull ghcr.io/${{ github.repository_owner }}/erouter:${{ steps.ver.outputs.version }}
             docker pull ghcr.io/${{ github.repository_owner }}/erouter:latest
-            docker run --rm -p 20128:20128 -v erouter-data:/app/data ghcr.io/${{ github.repository_owner }}/erouter:latest
+
+            docker run --rm -p 20128:20128 \
+              -v erouter-data:/app/data \
+              ghcr.io/${{ github.repository_owner }}/erouter:latest
             ```
 
-            ### Dashboard
-            Open http://localhost:20128 after start.
+            Package page: https://github.com/users/${{ github.repository_owner }}/packages/container/package/erouter
+
+            ### CLI
+            From source (dev):
+            ```bash
+            git clone https://github.com/${{ github.repository }}.git
+            cd ERouter/cli && npm install -g .
+            erouter
+            ```
+
+            Dashboard: http://localhost:20128
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

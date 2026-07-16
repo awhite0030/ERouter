@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Install & unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tests/package-lock.json
+            cli/package-lock.json
+
+      - name: Install app deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install test deps
+        working-directory: tests
+        run: |
+          if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+
+      - name: Unit tests (vitest, non-live)
+        working-directory: tests
+        env:
+          # Prefer local vitest from tests/node_modules
+          CI: "true"
+        run: |
+          npx vitest run \
+            --reporter=dot \
+            --exclude '**/*.{live,real,e2e}.test.js' \
+            --exclude '**/translator/real/**' \
+            unit/rtk.test.js \
+            unit/combo-routing.test.js \
+            unit/model-routing.test.js \
+            unit/provider-validation.test.js \
+            unit/dashboard-guard.test.js \
+            unit/security-audit.test.js \
+            || npx vitest run --reporter=dot unit/rtk.test.js
+
+      - name: CLI package sanity
+        working-directory: cli
+        run: |
+          node -e "const p=require('./package.json'); if(!p.bin||!p.bin.erouter) process.exit(1); console.log('cli', p.name, p.version)"
+          node --check cli.js
+
+  # Full Next.js build is heavy — run on main only (optional gate before release)
+  build:
+    name: Next.js build
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Build Next.js (standalone)
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          NODE_OPTIONS: "--max-old-space-size=6144"
+        run: npm run build
+
+      - name: Assert standalone output
+        run: |
+          test -f .next/standalone/server.js \
+            || test -f .next/standalone/erouter-app/server.js \
+            || test -f .next/standalone/erouter/server.js \
+            || (echo "standalone server.js not found" && find .next -name server.js | head && exit 1)

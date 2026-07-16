@@ -1,7 +1,7 @@
 name: Release
 
-# Manual or tag-driven release: build CLI standalone + GitHub Release notes.
-# Docker image is handled by docker-publish.yml on v* tags.
+# Tag v* or manual dispatch → GitHub Release + CLI tarball asset.
+# Docker image: docker-publish.yml (same tag).
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to release (e.g. v1.0.1). Empty = use package.json"
+        description: "Tag to release (e.g. v1.0.1). Empty = package.json version"
         required: false
         default: ""
 
@@ -21,18 +21,18 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-          registry-url: https://registry.npmjs.org
 
       - name: Resolve version
         id: ver
@@ -44,12 +44,29 @@ jobs:
           else
             TAG="v$(node -p "require('./package.json').version")"
           fi
+          VER="${TAG#v}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Resolved $TAG ($VER)"
+
+      - name: Sync package versions
+        run: |
+          node -e "
+            const fs=require('fs');
+            const v='${{ steps.ver.outputs.version }}';
+            for (const f of ['package.json','cli/package.json','tests/package.json']) {
+              try {
+                const p=JSON.parse(fs.readFileSync(f,'utf8'));
+                p.version=v;
+                fs.writeFileSync(f, JSON.stringify(p,null,2)+'\n');
+                console.log(f,'->',v);
+              } catch(e) { console.log('skip', f); }
+            }
+          "
 
       - run: npm ci --no-audit --no-fund
 
-      - name: Build CLI standalone pack
+      - name: Build CLI standalone
         working-directory: cli
         env:
           NEXT_TELEMETRY_DISABLED: "1"
@@ -66,12 +83,33 @@ jobs:
           name: erouter-cli-${{ steps.ver.outputs.version }}
           path: cli/erouter-*.tgz
 
-      - name: GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: ERouter ${{ steps.ver.outputs.tag }}
           generate_release_notes: true
-          files: cli/erouter-*.tgz
+          draft: false
+          prerelease: false
+          files: |
+            cli/erouter-*.tgz
+          body: |
+            ## ERouter ${{ steps.ver.outputs.tag }}
+
+            ### Install CLI (from this release)
+            ```bash
+            npm install -g ./erouter-${{ steps.ver.outputs.version }}.tgz
+            erouter --version
+            ```
+
+            ### Docker (GitHub Packages)
+            ```bash
+            docker pull ghcr.io/${{ github.repository_owner }}/erouter:${{ steps.ver.outputs.version }}
+            docker pull ghcr.io/${{ github.repository_owner }}/erouter:latest
+            docker run --rm -p 20128:20128 -v erouter-data:/app/data ghcr.io/${{ github.repository_owner }}/erouter:latest
+            ```
+
+            ### Dashboard
+            Open http://localhost:20128 after start.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

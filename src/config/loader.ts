@@ -2,6 +2,13 @@ import { readFile } from "node:fs/promises";
 import { parse as parseYaml } from "yaml";
 import type { TransformConfig } from "../gateway/transform.js";
 import type { ApiKey } from "../gateway/auth.js";
+import type {
+  ComboModelRef,
+  LlmComboConfig,
+  LlmConfig,
+  LlmProviderConfig,
+  ProviderTier,
+} from "../llm/types.js";
 
 export interface RouteMatch {
   path: string;
@@ -81,6 +88,8 @@ export interface ErouterConfig {
   cache?: CacheConfig;
   routes: RouteConfig[];
   resources: ResourcesConfig;
+  /** OpenAI-compatible LLM router (9router-inspired, YAML-first) */
+  llm?: LlmConfig;
 }
 
 function required(obj: Record<string, unknown>, key: string, path: string): unknown {
@@ -146,6 +155,131 @@ function parseCache(value: unknown): CacheConfig | undefined {
     defaultTtlMs: typeof c["defaultTtlMs"] === "number" ? (c["defaultTtlMs"] as number) : 30_000,
     maxEntries: typeof c["maxEntries"] === "number" ? (c["maxEntries"] as number) : 1_000,
   };
+}
+
+function asTier(value: unknown, path: string): ProviderTier | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (value === "subscription" || value === "cheap" || value === "free") return value;
+  throw new Error(`expected tier subscription|cheap|free at ${path}`);
+}
+
+function parseLlm(value: unknown): LlmConfig | undefined {
+  if (!value) return undefined;
+  const root = asObject(value, "$.llm");
+  const providersRaw = root["providers"];
+  if (!Array.isArray(providersRaw)) {
+    throw new Error("expected array at $.llm.providers");
+  }
+  const providers: LlmProviderConfig[] = providersRaw.map((p, i) => {
+    const o = asObject(p, `$.llm.providers[${i}]`);
+    const modelsRaw = o["models"];
+    if (!Array.isArray(modelsRaw) || modelsRaw.length === 0) {
+      throw new Error(`expected non-empty models at $.llm.providers[${i}].models`);
+    }
+    const tier = asTier(o["tier"], `$.llm.providers[${i}].tier`);
+    const authHeader = o["authHeader"];
+    const out: LlmProviderConfig = {
+      id: asString(o["id"], `$.llm.providers[${i}].id`),
+      baseUrl: asString(o["baseUrl"], `$.llm.providers[${i}].baseUrl`),
+      models: modelsRaw.map(String),
+    };
+    if (typeof o["apiKey"] === "string") out.apiKey = o["apiKey"] as string;
+    if (typeof o["apiKeyEnv"] === "string") out.apiKeyEnv = o["apiKeyEnv"] as string;
+    if (authHeader === "bearer" || authHeader === "x-api-key" || authHeader === "none") {
+      out.authHeader = authHeader;
+    }
+    if (tier) out.tier = tier;
+    if (typeof o["costInPer1M"] === "number") out.costInPer1M = o["costInPer1M"] as number;
+    if (typeof o["costOutPer1M"] === "number") out.costOutPer1M = o["costOutPer1M"] as number;
+    if (typeof o["timeoutMs"] === "number") out.timeoutMs = o["timeoutMs"] as number;
+    if (typeof o["retries"] === "number") out.retries = o["retries"] as number;
+    if (o["headers"] && typeof o["headers"] === "object") {
+      out.headers = o["headers"] as Record<string, string>;
+    }
+    return out;
+  });
+
+  const combosRaw = root["combos"];
+  const combos: LlmComboConfig[] = [];
+  if (combosRaw !== undefined) {
+    if (!Array.isArray(combosRaw)) throw new Error("expected array at $.llm.combos");
+    for (let i = 0; i < combosRaw.length; i++) {
+      const o = asObject(combosRaw[i], `$.llm.combos[${i}]`);
+      const modelsRaw = o["models"];
+      if (!Array.isArray(modelsRaw) || modelsRaw.length === 0) {
+        throw new Error(`expected non-empty models at $.llm.combos[${i}].models`);
+      }
+      const models: ComboModelRef[] = modelsRaw.map((m, j) => {
+        const mo = asObject(m, `$.llm.combos[${i}].models[${j}]`);
+        const tier = asTier(mo["tier"], `$.llm.combos[${i}].models[${j}].tier`);
+        const ref: ComboModelRef = {
+          provider: asString(mo["provider"], `$.llm.combos[${i}].models[${j}].provider`),
+          model: asString(mo["model"], `$.llm.combos[${i}].models[${j}].model`),
+        };
+        if (tier) ref.tier = tier;
+        if (typeof mo["weight"] === "number") ref.weight = mo["weight"] as number;
+        return ref;
+      });
+      const combo: LlmComboConfig = {
+        id: asString(o["id"], `$.llm.combos[${i}].id`),
+        models,
+      };
+      if (typeof o["description"] === "string") combo.description = o["description"] as string;
+      combos.push(combo);
+    }
+  }
+
+  const ecompressRaw = root["ecompress"];
+  let ecompress: LlmConfig["ecompress"];
+  if (ecompressRaw && typeof ecompressRaw === "object") {
+    const e = ecompressRaw as Record<string, unknown>;
+    ecompress = {
+      enabled: Boolean(e["enabled"] ?? true),
+      ...(typeof e["maxToolResultChars"] === "number"
+        ? { maxToolResultChars: e["maxToolResultChars"] as number }
+        : {}),
+      ...(typeof e["minCharsToCompress"] === "number"
+        ? { minCharsToCompress: e["minCharsToCompress"] as number }
+        : {}),
+    };
+  }
+
+  const leanMode = root["leanMode"];
+  const llm: LlmConfig = {
+    enabled: Boolean(root["enabled"] ?? true),
+    providers,
+    combos,
+  };
+  if (typeof root["basePath"] === "string") llm.basePath = root["basePath"] as string;
+  if (typeof root["requireAuth"] === "boolean") llm.requireAuth = root["requireAuth"] as boolean;
+  if (ecompress) llm.ecompress = ecompress;
+  if (root["promptPool"] && typeof root["promptPool"] === "object") {
+    const p = root["promptPool"] as Record<string, unknown>;
+    llm.promptPool = {
+      enabled: Boolean(p["enabled"] ?? true),
+      ...(typeof p["prefix"] === "string" ? { prefix: p["prefix"] as string } : {}),
+    };
+  }
+  if (root["ensemble"] && typeof root["ensemble"] === "object") {
+    const e = root["ensemble"] as Record<string, unknown>;
+    const strategy = e["defaultStrategy"];
+    llm.ensemble = {
+      ...(strategy === "first-ok" || strategy === "concat" || strategy === "vote-longest"
+        ? { defaultStrategy: strategy }
+        : {}),
+      ...(typeof e["maxParallel"] === "number" ? { maxParallel: e["maxParallel"] as number } : {}),
+    };
+  }
+  if (root["usage"] && typeof root["usage"] === "object") {
+    llm.usage = { enabled: Boolean((root["usage"] as { enabled?: boolean }).enabled ?? true) };
+  }
+  if (typeof root["defaultSystemPrompt"] === "string") {
+    llm.defaultSystemPrompt = root["defaultSystemPrompt"] as string;
+  }
+  if (leanMode === "off" || leanMode === "lite" || leanMode === "full") {
+    llm.leanMode = leanMode;
+  }
+  return llm;
 }
 
 export function parseConfig(raw: unknown): ErouterConfig {
@@ -216,6 +350,8 @@ export function parseConfig(raw: unknown): ErouterConfig {
   if (rl) cfg.rateLimit = rl;
   const cc = parseCache(root["cache"]);
   if (cc) cfg.cache = cc;
+  const llm = parseLlm(root["llm"]);
+  if (llm) cfg.llm = llm;
   return cfg;
 }
 

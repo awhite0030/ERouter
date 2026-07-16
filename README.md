@@ -14,16 +14,17 @@
 <br/>
 
 <p>
-  <strong>ERouter</strong> is an open-source <em>API gateway and resource aggregator</em>
-  built for small study groups, indie dev teams and local communities.
+  <strong>ERouter</strong> is an open-source <em>API gateway, resource aggregator,
+  and OpenAI-compatible LLM router</em> built for small study groups, indie dev teams
+  and local communities.
 </p>
 
 <p>
   <a href="#-quick-start">Quick start</a> ·&nbsp;
   <a href="#-features">Features</a> ·&nbsp;
+  <a href="#-llm-router-9router-inspired">LLM router</a> ·&nbsp;
   <a href="#-examples">Examples</a> ·&nbsp;
   <a href="#-comparison">Comparison</a> ·&nbsp;
-  <a href="docs/ARCHITECTURE.md">Architecture</a> ·&nbsp;
   <a href="#-community">Community</a>
 </p>
 
@@ -48,18 +49,22 @@
 
 ## ✨ Why ERouter?
 
-> *Enterprise service mesh costs you a meeting. ERouter costs you a YAML file.*
+> *Enterprise service mesh costs you a meeting. ERouter costs you a YAML file.*  
+> *AI coding routers cost you a dashboard and a SQLite. ERouter still costs you a YAML file.*
 
-Small teams don't need Envoy, Istio or Kong Enterprise. They need **one
-process** that:
+Small teams don't need Envoy, Istio, Kong Enterprise — or a heavyweight AI proxy UI.
+They need **one process** that:
 
 | Pain | What ERouter does |
 | --- | --- |
 | Three REST APIs answer the same question | `aggregator: json-merge` fans out and merges in one response |
 | Five teammates share keys and snapshots | `resources.pool` mounts a shared directory as read-only endpoints |
 | Public APIs need retries and timeouts | `undici`-backed `upstream` with token-bucket rate limit and TTL cache |
-| You want routes in code review | One `erouter.yaml`, no service registrations, no control plane |
-| You need to ship on a $5 VPS | Single Node.js process, ~5 MB image, zero external dependencies |
+| CLI tools hit provider rate limits | **LLM router**: OpenAI-compatible `/v1` + tiered fallback combos |
+| Tool outputs burn tokens (`git diff`, `grep`) | **ECompress** shrinks `tool_result` before the model (fail-open) |
+| You want multi-model opinions | **Ensemble** fan-out (`first-ok` / `concat` / `vote-longest`) |
+| You want routes in code review | One `erouter.yaml`, no control plane, no mandatory dashboard |
+| You need to ship on a $5 VPS | Single Node.js process, dual REST + LLM, zero external dependencies |
 
 ---
 
@@ -134,11 +139,109 @@ runs in a single Node process and serves traffic on port `8080`.
       <td><code>erouter init</code>, <code>erouter validate</code>, <code>erouter serve</code></td>
     </tr>
     <tr>
+      <td><strong>LLM /v1</strong></td>
+      <td>OpenAI-compatible <code>/v1/models</code> + <code>/v1/chat/completions</code> for Cursor, Cline, Codex, OpenClaw…</td>
+    </tr>
+    <tr>
+      <td><strong>Providers &amp; combos</strong></td>
+      <td>YAML providers (Ollama, OpenRouter, OpenAI, any OpenAI-shim) + ordered fallback combos</td>
+    </tr>
+    <tr>
+      <td><strong>ECompress</strong></td>
+      <td>Compress agent <code>tool_result</code> (git-diff / grep / tree / smart-truncate); reports <code>X-ERouter-Tokens-Saved</code></td>
+    </tr>
+    <tr>
+      <td><strong>Ensemble</strong></td>
+      <td><code>ensemble:&lt;combo&gt;</code> parallel multi-model (ERouter exclusive vs pure fallback routers)</td>
+    </tr>
+    <tr>
+      <td><strong>Lean mode</strong></td>
+      <td>Optional terse coding system prompt (<code>lite</code> / <code>full</code>) without third-party prompt packs</td>
+    </tr>
+    <tr>
       <td><strong>DX</strong></td>
       <td>Strict TypeScript, ESM, <code>node --test</code>, multi-stage Dockerfile, GitHub Actions CI + release</td>
     </tr>
   </tbody>
 </table>
+
+---
+
+## 🤖 LLM router (9router-inspired)
+
+Concepts drawn from multi-provider AI proxies like
+[9router](https://github.com/decolua/9router) — **redesigned for ERouter DNA**:
+
+| 9router-style idea | ERouter implementation | Distinctive twist |
+| --- | --- | --- |
+| OpenAI base URL for coding tools | `POST /v1/chat/completions` | Same process as REST gateway + pool |
+| Provider waterfall | YAML `llm.combos[]` ordered chain | Reviewable in PRs, no SQLite |
+| Token saver on tool output | **ECompress** | Pure TS, fail-open, savings headers |
+| Free → cheap → paid | `tier: subscription \| cheap \| free` | Cost **estimate** only (never bills) |
+| Multi-account / combos | Combos + `provider/model` ids | Plus **ensemble** fan-out |
+| Dashboard analytics | `GET /metrics` → `llm` snapshot | Headers on every response |
+
+### Quick LLM setup
+
+```bash
+cp examples/llm/erouter.yaml erouter.yaml
+# set OPENROUTER_API_KEY / OPENAI_API_KEY if using cloud providers
+# start Ollama locally for free tier, or point providers at your shims
+npx erouter serve --config erouter.yaml
+```
+
+Point any OpenAI-compatible client at:
+
+```text
+Base URL:  http://127.0.0.1:8080/v1
+API key:   team:change-me          # from auth.keys (id:secret)
+Model:     coding-stack            # or combo:coding-stack / ollama/llama3.2
+```
+
+```bash
+curl http://127.0.0.1:8080/v1/chat/completions \
+  -H "Authorization: Bearer team:change-me" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "coding-stack",
+    "messages": [{"role":"user","content":"say hi in one word"}]
+  }'
+```
+
+Response headers (transparent routing):
+
+```text
+X-ERouter-Provider: openai
+X-ERouter-Model: gpt-4o-mini
+X-ERouter-Tier: subscription
+X-ERouter-Mode: fallback
+X-ERouter-Fallback-Hop: 0
+X-ERouter-Tokens-Saved: 412
+X-ERouter-Cost-Estimate-Usd: 0.000180
+```
+
+### Distinctive ERouter features (roadmap-ready hooks)
+
+Already in **0.2.0**:
+
+1. **YAML-only control plane** — no mandatory UI; gitops-friendly.
+2. **ECompress** — agent tool_result compression with metrics.
+3. **Ensemble** — `ensemble:review-panel` multi-model parallel.
+4. **Lean mode** — built-in terse coding bias.
+5. **Dual gateway** — classic REST routes + LLM in one binary.
+6. **Study-group keys** — per-key rpm/burst/scopes for classrooms.
+7. **Transparent cost estimate** — savings tracker, never a bill.
+
+Strong next differentiators (good issues to open):
+
+| Idea | Why it beats pure AI dashboards |
+| --- | --- |
+| **Prompt pool** | System prompts / skills as `resources.pool` files (`prompts/review.json`) |
+| **Golden completions** | Pool-backed mock `/v1` answers for CI without burning tokens |
+| **Semantic cache** | Hash(messages) → TTL cache for identical lab prompts |
+| **SSE streaming** | `stream: true` passthrough with same fallback chain |
+| **Format bridges** | Claude / Gemini request translation (9router-depth, still YAML) |
+| **Budget caps** | Soft daily token ceilings per API key in metrics + 429 |
 
 ---
 
@@ -221,6 +324,7 @@ curl -H 'x-api-key: local:change-me' http://127.0.0.1:8080/pool/intro-to-apis
 | [`examples/minimal`](examples/minimal/erouter.yaml) | The smallest possible config — one route, no auth, no cache. |
 | [`examples/with-auth`](examples/with-auth/erouter.yaml) | API keys with scopes, per-key rate limit, scoped budgets. |
 | [`examples/gateway`](examples/gateway/erouter.yaml) | The kitchen sink: aggregator, transforms, cache, pool. |
+| [`examples/llm`](examples/llm/erouter.yaml) | OpenAI-compatible LLM router: Ollama + OpenRouter + combos + ECompress. |
 
 The `data/pool/` directory ships with three example resources
 (`intro-to-apis.json`, `indie-dev-tooling.json`, `local-community-net.json`)
@@ -265,9 +369,10 @@ graph. Pick the tool that matches the team size — not the slide deck.
 
 ```text
 src/
-  config/         YAML loader and validation
+  config/         YAML loader and validation (incl. llm block)
   gateway/        Fastify server, routing, auth, rate-limit,
-                  cache, transform, metrics
+                  cache, transform, metrics + /v1 mounts
+  llm/            OpenAI proxy, ECompress, fallback, ensemble, usage
   aggregator/     json-merge and pool strategies
   upstream/       undici HTTP client with retries
   cli.ts          erouter command-line entrypoint
@@ -301,11 +406,15 @@ config, pool, auth, rate-limit, transform, cache, and metrics.
 
 ## 🗺 Roadmap
 
+- [x] OpenAI-compatible LLM router + YAML providers/combos
+- [x] ECompress tool_result token saver
+- [x] Ensemble multi-model fan-out
+- [ ] SSE / `stream: true` passthrough with fallback
+- [ ] Prompt pool + golden completions for CI
+- [ ] Semantic response cache for identical prompts
+- [ ] Claude/Gemini format bridges
+- [ ] Per-key daily token budgets
 - [ ] Optional SQLite-backed persistent cache
-- [ ] GraphQL-style field selection in transforms
-- [ ] Web UI for browsing the resource pool
-- [ ] WASM filter plugin for richer transforms
-- [ ] Distributed rate limiter (Redis backend)
 - [ ] OpenTelemetry exporter for `/metrics`
 
 Have an idea? [Open a feature request](https://github.com/awhite0030/ERouter/issues/new?template=feature.yml).
@@ -340,4 +449,8 @@ Have an idea? [Open a feature request](https://github.com/awhite0030/ERouter/iss
 
 [MIT](LICENSE) © 2026 ERouter contributors.
 
-<sub align="right">Made for small teams that ship.</sub>
+LLM routing ideas inspired by the broader multi-provider proxy ecosystem
+(including [9router](https://github.com/decolua/9router)); implementation is
+original to ERouter and stays **YAML-first**.
+
+<sub align="right">Made for small teams that ship — REST and tokens.</sub>

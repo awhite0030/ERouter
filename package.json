@@ -1,7 +1,7 @@
 {
   "name": "erouter",
-  "version": "0.1.0",
-  "description": "Open-source API gateway and resource aggregator for small study groups, indie dev teams and local communities.",
+  "version": "0.2.0",
+  "description": "Open-source API gateway, resource aggregator, and OpenAI-compatible LLM router for small teams — YAML-first, ECompress, tiered fallback, ensemble.",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",

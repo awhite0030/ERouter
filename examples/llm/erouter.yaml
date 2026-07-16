@@ -1,0 +1,138 @@
+# ERouter as an OpenAI-compatible LLM router (9router-inspired, YAML-first)
+# Point Cursor / Cline / Codex / OpenClaw at: http://127.0.0.1:8080/v1
+#
+# Distinctive ERouter twists vs dashboard-heavy routers:
+#   - one yaml, reviewable in PRs
+#   - ECompress (tool_result token saver)
+#   - tiered combos + ensemble fan-out
+#   - lean mode (terse coding bias)
+#   - transparent X-ERouter-* headers + /metrics llm usage
+#   - same process still serves classic REST routes + resource pool
+
+server:
+  host: 127.0.0.1
+  port: 8080
+
+auth:
+  enabled: true
+  header: authorization
+  keys:
+    # Use as: Authorization: Bearer team:change-me
+    # (ERouter also accepts raw "team:change-me" in x-api-key style headers)
+    - id: team
+      secret: change-me
+      scopes: ["llm", "*"]
+      rpm: 120
+      burst: 40
+    - id: student
+      secret: study-lab
+      scopes: ["llm"]
+      rpm: 30
+      burst: 10
+
+rateLimit:
+  enabled: true
+  defaultRpm: 60
+  defaultBurst: 20
+
+cache:
+  enabled: true
+  defaultTtlMs: 30000
+  maxEntries: 1000
+
+# --- LLM layer (OpenAI-compatible) ---
+llm:
+  enabled: true
+  basePath: /v1
+  requireAuth: true
+  leanMode: lite
+  defaultSystemPrompt: "You are routed by ERouter. Prefer concise, correct answers."
+  ecompress:
+    enabled: true
+    maxToolResultChars: 4000
+    minCharsToCompress: 800
+  ensemble:
+    defaultStrategy: first-ok
+    maxParallel: 3
+  usage:
+    enabled: true
+
+  providers:
+    # Local free tier (Ollama OpenAI shim) — no key
+    - id: ollama
+      baseUrl: http://127.0.0.1:11434/v1
+      authHeader: none
+      tier: free
+      models: ["llama3.2", "qwen2.5-coder", "*"]
+      costInPer1M: 0
+      costOutPer1M: 0
+      timeoutMs: 120000
+
+    # Cheap OpenAI-compatible cloud (set OPENROUTER_API_KEY)
+    - id: openrouter
+      baseUrl: https://openrouter.ai/api/v1
+      apiKeyEnv: OPENROUTER_API_KEY
+      authHeader: bearer
+      tier: cheap
+      models:
+        - "openai/gpt-4o-mini"
+        - "google/gemini-2.0-flash-001"
+        - "anthropic/claude-3.5-sonnet"
+      costInPer1M: 0.15
+      costOutPer1M: 0.6
+      timeoutMs: 60000
+      headers:
+        HTTP-Referer: https://github.com/awhite0030/ERouter
+        X-Title: ERouter
+
+    # Optional OpenAI (set OPENAI_API_KEY) — treat as subscription/primary
+    - id: openai
+      baseUrl: https://api.openai.com/v1
+      apiKeyEnv: OPENAI_API_KEY
+      authHeader: bearer
+      tier: subscription
+      models: ["gpt-4o-mini", "gpt-4o"]
+      costInPer1M: 0.15
+      costOutPer1M: 0.6
+
+  combos:
+    # Use model: "coding-stack" or "combo:coding-stack"
+    - id: coding-stack
+      description: Subscription → cheap → free. Never stop coding.
+      models:
+        - { provider: openai, model: gpt-4o-mini, tier: subscription }
+        - { provider: openrouter, model: google/gemini-2.0-flash-001, tier: cheap }
+        - { provider: ollama, model: llama3.2, tier: free }
+
+    # Use model: "ensemble:review-panel" for multi-model fan-out
+    - id: review-panel
+      description: Parallel ensemble for code review opinions
+      models:
+        - { provider: openrouter, model: openai/gpt-4o-mini, weight: 1 }
+        - { provider: ollama, model: qwen2.5-coder, weight: 1 }
+
+# Classic REST routes still work alongside /v1
+routes:
+  - id: health-alias
+    match:
+      path: /hello/:name
+    upstream:
+      url: https://api.github.com/users/{name}
+      headers:
+        Accept: application/vnd.github+json
+        User-Agent: erouter-llm
+    transform:
+      pick: [login, id, name, bio]
+    cache:
+      ttlMs: 60000
+
+  - id: study-pool
+    match:
+      path: /pool/:key
+    aggregator:
+      strategy: pool
+      poolKey: "{key}.json"
+
+resources:
+  pool:
+    dir: ./data/pool

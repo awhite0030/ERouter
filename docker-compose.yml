@@ -1,13 +1,30 @@
 services:
   erouter:
-    build: .
-    image: erouter:latest
+    image: awhite0030/ERouter:latest
     container_name: erouter
-    restart: unless-stopped
+    restart: always
     ports:
-      - "8080:8080"
+      - "20128:20128"
     volumes:
-      - ./erouter.yaml:/app/erouter.yaml:ro
-      - ./data/pool:/app/data/pool:ro
+      - erouter-data:/app/data
+    env_file:
+      - .env
     environment:
-      - EROUTER_CONFIG=/app/erouter.yaml
+      DATA_DIR: /app/data
+      PORT: "20128"
+      HOSTNAME: "0.0.0.0"
+      NODE_ENV: production
+      HEADROOM_URL: http://headroom:8787
+    depends_on:
+      - headroom
+
+  headroom:
+    image: ghcr.io/chopratejas/headroom:latest
+    container_name: headroom
+    restart: always
+    ports:
+      - "8787:8787"
+
+volumes:
+  erouter-data:
+    name: erouter-data

@@ -1,0 +1,66 @@
+name: Version bump
+
+# After every successful push to main, bump patch version and push a follow-up commit.
+# Skips its own commits to avoid infinite loops.
+
+on:
+  push:
+    branches: [main, master]
+
+concurrency:
+  group: version-bump-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    name: Bump patch version
+    runs-on: ubuntu-latest
+    # Do not bump on version commits or manual [skip version]
+    if: |
+      github.actor != 'dependabot[bot]' &&
+      !contains(github.event.head_commit.message, 'chore(release):') &&
+      !contains(github.event.head_commit.message, '[skip version]') &&
+      !contains(github.event.head_commit.message, '[skip ci]')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need full history + token that can push
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Bump patch
+        id: bump
+        run: |
+          node scripts/bump-version.mjs patch
+          VER=$(node -p "require('./package.json').version")
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add package.json cli/package.json tests/package.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No version changes"
+            exit 0
+          fi
+
+          VER="${{ steps.bump.outputs.version }}"
+          git commit -m "chore(release): v${VER} [skip version]"
+          # Pull rebase in case of races, then push
+          git pull --rebase origin "${{ github.ref_name }}" || true
+          git push origin "HEAD:${{ github.ref_name }}"
+
+      # Tags intentionally NOT created here — every commit would flood Docker/Release.
+      # To cut a release image: git tag vX.Y.Z && git push origin vX.Y.Z
+      # or Actions → Release → Run workflow

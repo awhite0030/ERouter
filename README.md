@@ -13,5 +13,6 @@ See docs for setup.
 ## TODO
 - Add more provider examples
 - Improve error handling in router
+- Consider adding support for more AI IDEs
 
-🚀 Keep contributing!
+🚀 Keep contributing! Fixed a small TODO note.

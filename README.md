@@ -10,4 +10,8 @@ Connect Claude Code, Cursor, Codex, Cline to 40+ providers. Auto-fallback, RTK, 
 ## Quick Start
 See docs for setup.
 
+## TODO
+- Add more provider examples
+- Improve error handling in router
+
 🚀 Keep contributing!

@@ -16,3 +16,6 @@ See docs for setup.
 - Consider adding support for more AI IDEs
 
 🚀 Keep contributing! Fixed a small TODO note.
+
+## Recent Changes
+- Updated TODO list for clarity.

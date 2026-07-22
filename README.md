@@ -17,5 +17,6 @@ See docs for setup.
 
 ## Recent Changes
 - Updated TODO list for clarity.
+- Minor doc improvements for better readability.
 
-🚀 Small doc tweak to keep things fresh!
+🚀 Keeping the project alive!

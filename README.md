@@ -15,7 +15,7 @@ See docs for setup.
 - Improve error handling in router
 - Consider adding support for more AI IDEs
 
-🚀 Keep contributing! Fixed a small TODO note.
-
 ## Recent Changes
 - Updated TODO list for clarity.
+
+🚀 Small doc tweak to keep things fresh!

@@ -1,6 +1,6 @@
 {
   "name": "erouter-app",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "ERouter — free AI router & token saver (OpenAI-compatible gateway for coding tools)",
   "private": true,
   "scripts": {

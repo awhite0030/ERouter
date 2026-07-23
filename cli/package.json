@@ -1,6 +1,6 @@
 {
   "name": "erouter",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "ERouter CLI - Start and manage ERouter server",
   "bin": {
     "erouter": "./cli.js"

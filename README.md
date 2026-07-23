@@ -19,5 +19,6 @@ See the [docs](docs/) for detailed setup.
 ## Recent Changes
 - Updated TODO list for clarity.
 - Minor doc improvements for better readability.
+- Added note about community contributions.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡

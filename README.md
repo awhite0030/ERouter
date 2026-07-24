@@ -20,5 +20,6 @@ See the [docs](docs/) for detailed setup.
 - Updated TODO list for clarity.
 - Minor doc improvements for better readability.
 - Added note about community contributions.
+- Small tweak to intro for better flow.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡

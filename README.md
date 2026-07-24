@@ -23,3 +23,6 @@ See the [docs](docs/) for detailed setup.
 - Small tweak to intro for better flow.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡
+
+## Community
+Star if you find it useful! Contributions welcome.

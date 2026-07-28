@@ -22,6 +22,7 @@ See the [docs](docs/) for detailed setup.
 - Added note about community contributions.
 - Small tweak to intro for better flow.
 - Tiny wording polish in the intro.
+- Another small clarity pass on the feature list.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡
 

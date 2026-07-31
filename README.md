@@ -4,7 +4,7 @@ Connect Claude Code, Cursor, Codex, Cline to 40+ providers. Auto-fallback, RTK, 
 
 ## Features
 - Multi-provider routing with smart fallback
-- Token optimization and cost tracking
+- Token optimization and basic cost tracking
 - Interactive dashboard for monitoring usage
 - Open-source and fully self-hostable
 
@@ -24,6 +24,7 @@ See the [docs](docs/) for detailed setup.
 - Tiny wording polish in the intro.
 - Another small clarity pass on the feature list.
 - Tiny wording polish in features list.
+- Small clarification on cost tracking wording.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡
 

@@ -30,6 +30,7 @@ See the [docs](docs/) for detailed setup.
 - Tiny wording polish in features list.
 - Small clarification on cost tracking wording.
 - Clarified auto-fallback behavior for rate-limited providers.
+- Tiny wording polish in features list.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡
 

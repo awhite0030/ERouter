@@ -7,6 +7,7 @@ Connect Claude Code, Cursor, Codex, Cline to 40+ providers. Auto-fallback, RTK, 
 - Token optimization and basic cost tracking
 - Interactive dashboard for monitoring usage
 - Open-source and fully self-hostable
+- OpenAI-compatible `/v1` endpoint — point most existing clients at it with zero code changes
 
 When the primary provider is rate-limited or unavailable the router automatically tries the next one in your list — no manual intervention needed.
 
@@ -19,6 +20,7 @@ See the [docs](docs/) for detailed setup.
 - [ ] Consider adding support for more AI IDEs
 
 ## Recent Changes
+- Mentioned OpenAI-compatible `/v1` endpoint for easier client integration.
 - Updated TODO list for clarity.
 - Minor doc improvements for better readability.
 - Added note about community contributions.

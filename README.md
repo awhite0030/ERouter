@@ -8,6 +8,8 @@ Connect Claude Code, Cursor, Codex, Cline to 40+ providers. Auto-fallback, RTK, 
 - Interactive dashboard for monitoring usage
 - Open-source and fully self-hostable
 
+When the primary provider is rate-limited or unavailable the router automatically tries the next one in your list — no manual intervention needed.
+
 ## Quick Start
 See the [docs](docs/) for detailed setup.
 
@@ -25,6 +27,7 @@ See the [docs](docs/) for detailed setup.
 - Another small clarity pass on the feature list.
 - Tiny wording polish in features list.
 - Small clarification on cost tracking wording.
+- Clarified auto-fallback behavior for rate-limited providers.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡
 

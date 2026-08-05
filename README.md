@@ -9,7 +9,7 @@ Connect Claude Code, Cursor, Codex, Cline to 40+ providers. Auto-fallback, RTK, 
 - Open-source and fully self-hostable
 - OpenAI-compatible `/v1` endpoint — point most existing clients at it with zero code changes
 
-When the primary provider is rate-limited or unavailable the router automatically tries the next one in your list — no manual intervention needed. Provider order in the config is the fallback priority.
+When the primary provider is rate-limited or unavailable the router automatically tries the next one in your list — no manual intervention needed. Provider order in the config is the fallback priority (first = preferred).
 
 ## Quick Start
 See the [docs](docs/) for detailed setup.
@@ -32,6 +32,7 @@ See the [docs](docs/) for detailed setup.
 - Clarified auto-fallback behavior for rate-limited providers.
 - Tiny wording polish in features list.
 - Added short note that provider order is the fallback priority.
+- Tiny clarification that first provider is preferred.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡
 

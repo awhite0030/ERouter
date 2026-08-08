@@ -37,6 +37,7 @@ See the [docs](docs/) for detailed setup.
 - Tiny clarification that first provider is preferred.
 - Added a short tip about starting with 2–3 providers.
 - Extra note that you can re-order providers later in the dashboard.
+- Tiny wording polish in recent changes section.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡
 

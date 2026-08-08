@@ -1,6 +1,6 @@
 {
   "name": "erouter-tests",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "private": true,
   "type": "module",
   "description": "Unit tests for erouter embeddings endpoint",

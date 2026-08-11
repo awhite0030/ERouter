@@ -11,7 +11,7 @@ Connect Claude Code, Cursor, Codex, Cline to 40+ providers. Auto-fallback, RTK, 
 
 When the primary provider is rate-limited or unavailable the router automatically tries the next one in your list — no manual intervention needed. Provider order in the config is the fallback priority (first = preferred).
 
-Tip: start with 2–3 providers in your config; the first one is used by default and the rest act as automatic fallbacks. You can always re-order them later in the dashboard.
+Tip: start with 2–3 providers in your config; the first one is used by default and the rest act as automatic fallbacks. You can always re-order them later in the dashboard or config file.
 
 ## Quick Start
 See the [docs](docs/) for detailed setup.
@@ -38,6 +38,7 @@ See the [docs](docs/) for detailed setup.
 - Added a short tip about starting with 2–3 providers.
 - Extra note that you can re-order providers later in the dashboard.
 - Tiny wording polish in recent changes section.
+- Small clarity tweak: mentioned config file as alternative place to re-order providers.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡
 

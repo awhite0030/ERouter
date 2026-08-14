@@ -39,6 +39,7 @@ See the [docs](docs/) for detailed setup.
 - Extra note that you can re-order providers later in the dashboard.
 - Tiny wording polish in recent changes section.
 - Small clarity tweak: mentioned config file as alternative place to re-order providers.
+- Quick note that dashboard changes take effect after a short refresh.
 
 🚀 Keeping the project alive and kicking! Let's build better AI tools together. 💡
 

@@ -16,12 +16,20 @@ Tip: start with 2–3 providers in your config; the first one is used by default
 ## Quick Start
 See the [docs](docs/) for detailed setup.
 
+Quick smoke test after starting the server:
+```bash
+curl http://localhost:3000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"hi"}]}'
+```
+
 ## TODO
 - [ ] Add more provider examples
 - [ ] Improve error handling in router
 - [ ] Consider adding support for more AI IDEs
 
 ## Recent Changes
+- Added a minimal curl example for the OpenAI-compatible endpoint.
 - Mentioned OpenAI-compatible `/v1` endpoint for easier client integration.
 - Updated TODO list for clarity.
 - Minor doc improvements for better readability.

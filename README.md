@@ -11,6 +11,8 @@ Connect Claude Code, Cursor, Codex, Cline to 40+ providers. Auto-fallback, RTK, 
 
 When the primary provider is rate-limited or unavailable the router automatically tries the next one in your list — no manual intervention needed. Provider order in the config is the fallback priority (first = preferred).
 
+If every configured provider is rate-limited at the same time the router returns a clear error so the client knows nothing is currently available.
+
 Tip: start with 2–3 providers in your config; the first one is used by default and the rest act as automatic fallbacks. You can always re-order them later in the dashboard or config file.
 
 ## Quick Start
@@ -29,6 +31,7 @@ curl http://localhost:3000/v1/chat/completions \
 - [ ] Consider adding support for more AI IDEs
 
 ## Recent Changes
+- Added note about behavior when all providers are rate-limited.
 - Added a minimal curl example for the OpenAI-compatible endpoint.
 - Mentioned OpenAI-compatible `/v1` endpoint for easier client integration.
 - Updated TODO list for clarity.
